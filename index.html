@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chronicles of the Mahajanapadas - Visualizer</title>
+    <title>Chronicles of the Mahajanapadas - Dynamic Visualizer</title>
     <style>
         :root {
             --bg-color: #121212;
@@ -49,9 +49,8 @@
             transition: 0.3s;
         }
 
-        button:hover {
-            background-color: #b5952f;
-        }
+        button:hover { background-color: #b5952f; }
+        button:disabled { background-color: #555; cursor: not-allowed; }
 
         .section-container {
             display: none;
@@ -90,6 +89,7 @@
             padding: 12px;
             text-align: left;
             border-bottom: 1px solid #444;
+            transition: background-color 0.3s;
         }
         th { color: var(--accent); font-size: 18px; }
         tr:hover { background-color: #333; }
@@ -97,9 +97,7 @@
         .gold-col { color: var(--accent); font-weight: bold; }
 
         /* Arena */
-        .controls {
-            display: flex; justify-content: center; align-items: center; gap: 15px;
-        }
+        .controls { display: flex; justify-content: center; align-items: center; gap: 15px; }
         select {
             padding: 10px; background-color: #333; color: white;
             border: 1px solid #555; border-radius: 5px; font-size: 16px;
@@ -108,34 +106,34 @@
             display: flex; align-items: center; justify-content: center; gap: 20px;
             background: #2a2a2a; padding: 10px; margin-top: 5px; border-radius: 5px;
         }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        
         .action-box { padding: 5px 15px; border-radius: 4px; font-weight: bold; color: #000; width: 90px; text-align: center;}
         .ALLY { background-color: var(--ally-color); }
         .BETRAY { background-color: var(--betray-color); }
 
         /* Evolution */
         .epoch-block {
-            background: #2a2a2a;
-            padding: 15px;
-            margin-bottom: 15px;
-            border-radius: 5px;
+            background: #2a2a2a; padding: 15px; margin-bottom: 15px; border-radius: 5px;
         }
         .epoch-title { color: var(--accent); margin-top: 0; }
         .census-row { display: flex; margin-bottom: 5px; }
         .census-name { width: 250px; font-weight: bold; }
         .census-blocks { color: var(--ally-color); letter-spacing: 3px; font-size: 18px; }
-        .conclusion { border-top: 2px dashed var(--accent); padding-top: 20px; margin-top: 20px; color: #fff; }
+        .conclusion { border-top: 2px dashed var(--accent); padding-top: 20px; margin-top: 20px; color: #fff; text-align: center; }
+        .dynamic-note { font-size: 13px; color: #888; text-align: center; font-style: italic; margin-top: 15px; }
     </style>
 </head>
 <body>
 
     <h1>Diplomatic Tournament Engine</h1>
-    <p>A Game Theory Visualization</p>
+    <p>A Dynamic Game Theory Visualization</p>
 
     <div class="nav-buttons">
         <button onclick="showSection('strategies-section')">View Strategies</button>
-        <button onclick="showSection('arena-section')">Live Match (1v1)</button>
-        <button onclick="runGrandTournament()">Grand Tournament Table (Normal)</button>
-        <button onclick="runEvolution()">Evolutionary Epochs (Generational)</button>
+        <button onclick="showSection('arena-section')" id="btn-arena">Live Match (1v1)</button>
+        <button onclick="runGrandTournament()" id="btn-tourney">Run Grand Tournament (100 Yrs)</button>
+        <button onclick="runEvolution()" id="btn-evo">Simulate Evolutionary Epochs</button>
     </div>
 
     <!-- 1. Strategies Section -->
@@ -147,7 +145,7 @@
             <div class="card"><h3>The Atavika Raider</h3><p>Always Defect: Ruthless raider. Never cooperates.</p></div>
             <div class="card"><h3>Chanakya's Disciple</h3><p>Tit-for-Tat: Starts with Alliance, then purely mirrors the opponent's last move.</p></div>
             <div class="card"><h3>Ajatashatru's Paranoia</h3><p>Suspicious TFT: Strikes first (Betray), then mirrors the opponent's moves.</p></div>
-            <div class="card"><h3>Sarthavaha of the Monsoon</h3><p>Chaos: Randomly decides to Ally or Betray (50/50 chance).</p></div>
+            <div class="card"><h3>Sarthavaha of the Monsoon</h3><p>Chaos: Randomly decides to Ally or Betray (50/50 chance). Creates dynamic fluctuations!</p></div>
         </div>
     </div>
 
@@ -172,7 +170,7 @@
                 <option value="AjatashatrusParanoia" selected>Ajatashatru's Paranoia</option>
                 <option value="Sarthavaha">Sarthavaha of the Monsoon</option>
             </select>
-            <button onclick="runLiveArena()">Run Simulation</button>
+            <button onclick="runLiveArena()" id="btn-start-arena">Start Negotiation</button>
         </div>
         <div id="visualization" style="margin-top: 20px; text-align: center;"></div>
     </div>
@@ -190,26 +188,41 @@
                 </tr>
             </thead>
             <tbody id="tournament-body">
-                <!-- Rows injected via JS -->
+                <!-- Rows injected dynamically -->
             </tbody>
         </table>
+        <p class="dynamic-note">Note: Run this multiple times! Notice how the exact Gold values change? That is Sarthavaha's chaotic Random Number Generator rippling through the ecosystem.</p>
         <p class="conclusion"><b>CONCLUSION:</b> History favors those who are Nice, Forgiving, Retaliatory, and Clear.</p>
     </div>
 
     <!-- 4. Evolution Section -->
     <div id="evolution-section" class="section-container">
-        <h2 style="text-align: center;">Chronicles of Evolutionary Epochs (Natural Selection)</h2>
-        <p style="text-align: center; color: #aaa;">Simulating 15 generations of 12 kingdoms. The bottom 3 kingdoms collapse each epoch, and the top 3 expand.</p>
+        <h2 style="text-align: center;" id="evo-header">Chronicles of Evolutionary Epochs</h2>
+        <p style="text-align: center; color: #aaa;">Simulating 15 generations of 12 kingdoms. The bottom 3 kingdoms collapse each epoch, and the top 3 expand into their territories.</p>
         <div id="evolution-timeline"></div>
-        <div id="evolution-conclusion" class="conclusion"></div>
+        <div id="evolution-conclusion" class="conclusion" style="display:none;"></div>
     </div>
 
     <!-- JavaScript Engine -->
     <script>
-        // Tab system
+        // Track intervals so we can cancel animations if the user clicks away
+        let arenaInterval, evoInterval;
+
         function showSection(id) {
+            clearInterval(arenaInterval);
+            clearInterval(evoInterval);
             document.querySelectorAll('.section-container').forEach(el => el.style.display = 'none');
             document.getElementById(id).style.display = 'block';
+            enableButtons();
+        }
+
+        function disableButtons() {
+            document.querySelectorAll('.nav-buttons button').forEach(b => b.disabled = true);
+            document.getElementById('btn-start-arena')?.setAttribute('disabled', 'true');
+        }
+
+        function enableButtons() {
+            document.querySelectorAll('button').forEach(b => b.disabled = false);
         }
 
         // --- CORE GAME THEORY LOGIC ---
@@ -219,7 +232,7 @@
             AtavikaRaider: { name: "The Atavika Raider", desc: "Ruthless forest raider.", dec: (my, riv) => 'BETRAY' },
             ChanakyaDisciple: { name: "Chanakya's Disciple", desc: "Pragmatic statecraft (Tit-for-Tat).", dec: (my, riv) => riv.length === 0 ? 'ALLY' : riv[riv.length - 1] },
             AjatashatrusParanoia: { name: "Ajatashatru's Paranoia", desc: "Suspicious diplomacy (Strikes first).", dec: (my, riv) => riv.length === 0 ? 'BETRAY' : riv[riv.length - 1] },
-            Sarthavaha: { name: "Sarthavaha of the Monsoon", desc: "Chaos (Random).", dec: (my, riv) => Math.random() < 0.5 ? 'ALLY' : 'BETRAY' }
+            Sarthavaha: { name: "Sarthavaha of the Monsoon", desc: "Chaos (Random 50/50).", dec: (my, riv) => Math.random() < 0.5 ? 'ALLY' : 'BETRAY' }
         };
 
         function createKingdom(typeKey) {
@@ -232,44 +245,45 @@
             };
         }
 
-        function negotiateTreaty(k1, k2, years) {
-            let h1 = [], h2 = [];
-            let t1 = 0, t2 = 0;
-            for (let i = 0; i < years; i++) {
-                let a1 = k1.makeDecision(h1, h2);
-                let a2 = k2.makeDecision(h2, h1);
-
-                if (a1 === 'ALLY' && a2 === 'ALLY') { t1 += 3; t2 += 3; }
-                else if (a1 === 'BETRAY' && a2 === 'ALLY') { t1 += 5; t2 += 0; }
-                else if (a1 === 'ALLY' && a2 === 'BETRAY') { t1 += 0; t2 += 5; }
-                else { t1 += 1; t2 += 1; }
-
-                h1.push(a1); h2.push(a2);
-            }
-            return [t1, t2];
-        }
-
-        // --- 1. LIVE ARENA LOGIC ---
+        // --- 1. DYNAMIC LIVE ARENA (Animated) ---
         function runLiveArena() {
+            disableButtons();
+            clearInterval(arenaInterval);
             const k1 = createKingdom(document.getElementById('p1-select').value);
             const k2 = createKingdom(document.getElementById('p2-select').value);
-            const [t1, t2] = negotiateTreaty(k1, k2, 20); 
             
-            let h1=[], h2=[], html='';
-            let r_t1=0, r_t2=0;
-            for(let i=0; i<20; i++){
-                let a1 = k1.makeDecision(h1,h2);
-                let a2 = k2.makeDecision(h2,h1);
-                let g1=0, g2=0;
-                if(a1=='ALLY' && a2=='ALLY'){g1=3;g2=3;} else if(a1=='BETRAY'&&a2=='ALLY'){g1=5;g2=0;} else if(a1=='ALLY'&&a2=='BETRAY'){g1=0;g2=5;} else{g1=1;g2=1;}
-                html += `<div class="round-row">
-                            <span style="color:#888; width:40px;">Yr ${i+1}</span>
-                            <div class="action-box ${a1}">${a1} (+${g1})</div> ⚔️ <div class="action-box ${a2}">${a2} (+${g2})</div>
-                         </div>`;
+            let h1 = [], h2 = [];
+            let t1 = 0, t2 = 0;
+            let round = 0;
+            const maxRounds = 20;
+            
+            const visDiv = document.getElementById('visualization');
+            visDiv.innerHTML = `<h3 style="color:#aaa;">Negotiations have begun...</h3><div id="arena-rounds"></div>`;
+            const roundsDiv = document.getElementById('arena-rounds');
+
+            arenaInterval = setInterval(() => {
+                let a1 = k1.makeDecision(h1, h2);
+                let a2 = k2.makeDecision(h2, h1);
+                let g1 = 0, g2 = 0;
+                
+                if(a1 === 'ALLY' && a2 === 'ALLY') { g1 = 3; g2 = 3; t1 += 3; t2 += 3; } 
+                else if(a1 === 'BETRAY' && a2 === 'ALLY') { g1 = 5; g2 = 0; t1 += 5; t2 += 0; } 
+                else if(a1 === 'ALLY' && a2 === 'BETRAY') { g1 = 0; g2 = 5; t1 += 0; t2 += 5; } 
+                else { g1 = 1; g2 = 1; t1 += 1; t2 += 1; }
+                
+                roundsDiv.innerHTML += `<div class="round-row">
+                                            <span style="color:#888; width:40px;">Yr ${round+1}</span>
+                                            <div class="action-box ${a1}">${a1} (+${g1})</div> ⚔️ <div class="action-box ${a2}">${a2} (+${g2})</div>
+                                         </div>`;
                 h1.push(a1); h2.push(a2);
-            }
-            html += `<h3 style="color:var(--accent); margin-top:20px;">${k1.name}: ${t1} Gold &nbsp;&nbsp;|&nbsp;&nbsp; ${k2.name}: ${t2} Gold</h3>`;
-            document.getElementById('visualization').innerHTML = html;
+                round++;
+
+                if (round >= maxRounds) {
+                    clearInterval(arenaInterval);
+                    visDiv.innerHTML += `<h2 style="color:var(--accent); margin-top:20px; animation: fadeIn 0.5s;">FINAL: ${k1.name}: ${t1} Gold &nbsp;&nbsp;|&nbsp;&nbsp; ${k2.name}: ${t2} Gold</h2>`;
+                    enableButtons();
+                }
+            }, 800); // 0.8 seconds per round
         }
 
         // --- 2. GRAND TOURNAMENT LOGIC ---
@@ -277,11 +291,22 @@
             showSection('tournament-section');
             let pop = Object.keys(KingdomLogic).map(createKingdom);
             
+            // Play matches
             for (let i = 0; i < pop.length; i++) {
                 for (let j = i; j < pop.length; j++) {
-                    let [t1, t2] = negotiateTreaty(pop[i], pop[j], 100);
-                    pop[i].totalTreasury += t1;
-                    if (i !== j) pop[j].totalTreasury += t2;
+                    let h1 = [], h2 = [];
+                    let p1Score = 0, p2Score = 0;
+                    for (let yr = 0; yr < 100; yr++) {
+                        let a1 = pop[i].makeDecision(h1, h2);
+                        let a2 = pop[j].makeDecision(h2, h1);
+                        if (a1 === 'ALLY' && a2 === 'ALLY') { p1Score+=3; p2Score+=3; }
+                        else if (a1 === 'BETRAY' && a2 === 'ALLY') { p1Score+=5; }
+                        else if (a1 === 'ALLY' && a2 === 'BETRAY') { p2Score+=5; }
+                        else { p1Score+=1; p2Score+=1; }
+                        h1.push(a1); h2.push(a2);
+                    }
+                    pop[i].totalTreasury += p1Score;
+                    if (i !== j) pop[j].totalTreasury += p2Score;
                 }
             }
             
@@ -289,37 +314,61 @@
             
             let tbody = document.getElementById('tournament-body');
             tbody.innerHTML = '';
+            // Animate rows in
             pop.forEach((k, idx) => {
-                tbody.innerHTML += `
-                    <tr>
-                        <td class="rank-col">#${idx + 1}</td>
-                        <td><b>${k.name}</b></td>
-                        <td>${k.desc}</td>
-                        <td class="gold-col">${k.totalTreasury} Gold</td>
-                    </tr>
-                `;
+                setTimeout(() => {
+                    tbody.innerHTML += `
+                        <tr style="animation: fadeIn 0.3s ease-in-out;">
+                            <td class="rank-col">#${idx + 1}</td>
+                            <td><b>${k.name}</b></td>
+                            <td>${k.desc}</td>
+                            <td class="gold-col">${k.totalTreasury} Gold</td>
+                        </tr>
+                    `;
+                }, idx * 800);
             });
         }
 
-        // --- 3. EVOLUTIONARY EPOCHS LOGIC ---
+        // --- 3. DYNAMIC EVOLUTIONARY EPOCHS (Animated) ---
         function runEvolution() {
             showSection('evolution-section');
+            disableButtons();
+            clearInterval(evoInterval);
+            
             let baseKeys = Object.keys(KingdomLogic);
-            let pop = [...baseKeys, ...baseKeys].map(createKingdom);
+            let pop = [...baseKeys, ...baseKeys].map(createKingdom); // 12 Kingdoms total
+            
             let timelineDiv = document.getElementById('evolution-timeline');
+            let conclDiv = document.getElementById('evolution-conclusion');
+            let header = document.getElementById('evo-header');
+            
             timelineDiv.innerHTML = ''; 
+            conclDiv.style.display = 'none';
 
             const numGenerations = 15;
             const cullRate = 3;
+            let gen = 1;
 
-            for (let gen = 1; gen <= numGenerations; gen++) {
+            evoInterval = setInterval(() => {
+                header.innerText = `Simulating Epoch ${gen} of ${numGenerations}...`;
                 pop.forEach(k => k.totalTreasury = 0);
 
+                // Round robin
                 for (let i = 0; i < pop.length; i++) {
                     for (let j = i; j < pop.length; j++) {
-                        let [t1, t2] = negotiateTreaty(pop[i], pop[j], 100);
-                        pop[i].totalTreasury += t1;
-                        if (i !== j) pop[j].totalTreasury += t2;
+                        let h1 = [], h2 = [];
+                        let p1Score = 0, p2Score = 0;
+                        for (let yr = 0; yr < 100; yr++) {
+                            let a1 = pop[i].makeDecision(h1, h2);
+                            let a2 = pop[j].makeDecision(h2, h1);
+                            if (a1 === 'ALLY' && a2 === 'ALLY') { p1Score+=3; p2Score+=3; }
+                            else if (a1 === 'BETRAY' && a2 === 'ALLY') { p1Score+=5; }
+                            else if (a1 === 'ALLY' && a2 === 'BETRAY') { p2Score+=5; }
+                            else { p1Score+=1; p2Score+=1; }
+                            h1.push(a1); h2.push(a2);
+                        }
+                        pop[i].totalTreasury += p1Score;
+                        if (i !== j) pop[j].totalTreasury += p2Score;
                     }
                 }
 
@@ -339,36 +388,42 @@
                     }
                 });
                 epochHTML += `</div>`;
-                timelineDiv.innerHTML += epochHTML;
+                
+                // Keep only the most recent 3 epochs visible to prevent massive scrolling
+                if(timelineDiv.children.length > 2) {
+                    timelineDiv.removeChild(timelineDiv.firstChild);
+                }
+                timelineDiv.insertAdjacentHTML('beforeend', epochHTML);
 
                 if (gen < numGenerations) {
                     for (let i = 0; i < cullRate; i++) {
                         pop[pop.length - 1 - i] = createKingdom(pop[i].type);
                     }
+                } else {
+                    // End of simulation
+                    clearInterval(evoInterval);
+                    header.innerText = `Evolution Complete: Final Epoch Reached`;
+                    
+                    let uniqueSurvivors = [];
+                    let seen = new Set();
+                    for (let k of pop) {
+                        if (!seen.has(k.name)) { seen.add(k.name); uniqueSurvivors.push(k); }
+                    }
+
+                    let survivorsHTML = `<h3 style="color:var(--accent);">🏆 SURVIVORS OF THE FINAL EPOCH</h3>`;
+                    for (let i = 0; i < Math.min(3, uniqueSurvivors.length); i++) {
+                        survivorsHTML += `<p style="font-size: 18px;"><b>${i + 1}. ${uniqueSurvivors[i].name}</b> (Surviving Population: ${census[uniqueSurvivors[i].name]})</p>`;
+                    }
+
+                    conclDiv.innerHTML = survivorsHTML + `
+                        <br>
+                        <b>CONCLUSION:</b> Over centuries of natural selection, purely aggressive or purely pacifist states collapse. Pragmatic, retaliatory, and forgiving statecraft (Tit-for-Tat variants) dominates the continent.
+                    `;
+                    conclDiv.style.display = 'block';
+                    enableButtons();
                 }
-            }
-
-            // Filter for unique surviving strategies based on the sorted population
-            let uniqueSurvivors = [];
-            let seen = new Set();
-            for (let k of pop) {
-                if (!seen.has(k.name)) {
-                    seen.add(k.name);
-                    uniqueSurvivors.push(k);
-                }
-            }
-
-            // Build the HTML for up to 3 unique survivors
-            let survivorsHTML = `<h3>🏆 SURVIVORS OF THE FINAL EPOCH (Unique Strategies)</h3>`;
-            for (let i = 0; i < Math.min(3, uniqueSurvivors.length); i++) {
-                survivorsHTML += `<p>${i + 1}. ${uniqueSurvivors[i].name} | Wealth: ${uniqueSurvivors[i].totalTreasury} Gold</p>`;
-            }
-
-            let conclDiv = document.getElementById('evolution-conclusion');
-            conclDiv.innerHTML = survivorsHTML + `
-                <br>
-                <b>CONCLUSION:</b> Over centuries of natural selection, purely aggressive or purely pacifist states collapse. Pragmatic, retaliatory, and forgiving statecraft (Tit-for-Tat variants) dominates the continent.
-            `;
+                gen++;
+            }, 800); // 0.8 seconds between epochs
         }
         
         window.onload = () => showSection('strategies-section');
